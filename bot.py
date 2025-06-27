@@ -1,7 +1,7 @@
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 
-TOKEN = "8085039832:AAFIwXsuhjzLs1IoJiPpZJiauvObxceMOEY"  # حط التوكن هنا
+TOKEN = "8085039832:AAFIwXsuhjzLs1IoJiPpZJiauvObxceMOEY"  # ← التوكن مؤقتاً هنا
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("مرحباً! أنا بوت سامر شغال 24 ساعة 💬")
