@@ -1,65 +1,49 @@
-// server.js
-const express = require("express");
-const cors = require("cors");
-const { Pool } = require("pg");
-
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-app.use(cors());
-app.use(express.json());
-
-// 🛠️ الاتصال بقاعدة البيانات
-const pool = new Pool({
-  connectionString: "postgresql://postgres:obSVMZpUxTXoRcaBrcZNCAfZVtwTiVrC@centerbeam.proxy.rlwy.net:17828/railway",
-  ssl: {
-    rejectUnauthorized: false,
-  },
-});
-
-// ✅ إنشاء جدول الطلبات إن لم يكن موجود
-pool.query(`
-  CREATE TABLE IF NOT EXISTS orders (
-    id SERIAL PRIMARY KEY,
-    offer TEXT NOT NULL,
-    price NUMERIC NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  )
-`, (err) => {
-  if (err) {
-    console.error("❌ خطأ في إنشاء الجدول:", err);
-  } else {
-    console.log("✅ جدول الطلبات جاهز");
-  }
-});
-
-// نقطة اختبار
-app.get("/", (req, res) => {
-  res.send("✅ API شغال ومرتبط بـ PostgreSQL");
-});
-
-// استقبال الطلبات وتخزينها في PostgreSQL
-app.post("/order", async (req, res) => {
-  const { offer, price } = req.body;
-
-  if (!offer || !price) {
-    return res.status(400).json({ success: false, message: "البيانات ناقصة" });
-  }
-
+app.get("/orders", async (req, res) => {
   try {
-    await pool.query(
-      "INSERT INTO orders (offer, price) VALUES ($1, $2)",
-      [offer, price]
-    );
+    const result = await pool.query("SELECT * FROM orders ORDER BY created_at DESC");
 
-    console.log("✅ تم تخزين الطلب:", offer, price);
-    res.json({ success: true, message: "✅ تم استلام وتخزين الطلب" });
-  } catch (error) {
-    console.error("❌ خطأ أثناء التخزين:", error);
-    res.status(500).json({ success: false, message: "حدث خطأ أثناء حفظ الطلب" });
+    const html = `
+      <!DOCTYPE html>
+      <html lang="ar" dir="rtl">
+      <head>
+        <meta charset="UTF-8" />
+        <title>لوحة الطلبات - 4 STORE</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+      </head>
+      <body class="bg-light">
+        <div class="container py-5">
+          <h2 class="mb-4 text-center text-primary">📦 لوحة الطلبات</h2>
+          <table class="table table-bordered table-striped table-hover">
+            <thead class="table-dark">
+              <tr>
+                <th>رقم</th>
+                <th>العرض</th>
+                <th>السعر (ريال)</th>
+                <th>الوقت</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${result.rows
+                .map(
+                  (row) => `
+                <tr>
+                  <td>${row.id}</td>
+                  <td>${row.offer}</td>
+                  <td>${row.price}</td>
+                  <td>${new Date(row.created_at).toLocaleString("ar-EG")}</td>
+                </tr>
+              `
+                )
+                .join("")}
+            </tbody>
+          </table>
+        </div>
+      </body>
+      </html>
+    `;
+    res.send(html);
+  } catch (err) {
+    console.error("❌ خطأ في جلب الطلبات:", err);
+    res.status(500).send("حدث خطأ أثناء تحميل الطلبات.");
   }
-});
-
-app.listen(PORT, () => {
-  console.log(`🚀 API شغال على http://localhost:${PORT}`);
 });
